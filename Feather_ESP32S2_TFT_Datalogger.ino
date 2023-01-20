@@ -14,6 +14,12 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 /*
+ * Part Numbers
+ * Adafruit ESP32-S2 TFT Feather part number 5300
+ * Adafruit SHT-30 temperature+humidity sensor part number P5064
+ */
+
+/*
 Tools -> Board -> ESP32 Arduino -> Adafruit ESP32-S3 TFT
 Tools -> Upload Speed -> 921600
 Tools -> CPU Frequency -> 240 MHz (WiFi)
@@ -40,6 +46,8 @@ Tools -> Programmer -> Esptool
 #include <OneWire.h>
 // https://www.arduino.cc/reference/en/libraries/dallastemperature/
 #include <DallasTemperature.h>
+// Humidity sensor https://learn.adafruit.com/adafruit-sht31-d-temperature-and-humidity-sensor-breakout
+#include "Adafruit_SHT31.h"
 
 extern Adafruit_TestBed TB;  // Only used for the built-in neopixel
 
@@ -84,10 +92,14 @@ long nSentRecords = 0;
 // Limit to amount of buffered data so we don't crash if uploading is not working
 const unsigned long maxData = 80000;
 unsigned long boottime = 0;
-
+Adafruit_SHT31 sht31 = Adafruit_SHT31();
+uint8_t I2Caddr = 0x44;  // Set to 0x45 for alternate I2C addr of SHT-30
+bool sht31_detected = false;
 
 // List of pins used for 1-wire sensors, a physical pull-up resistor will be required on each pin
-// Feather pins on "top" left to right are BAT EN USB 13 12 11 10 9 6 5 SCL SDA
+// Feather pins on "top" left to right are BAT EN USB 13 12 11 10 9 6 5 SCL SDA (end away from USB connector)
+// Adafruit SHT-30 temperature+humidity sensor P5064 wire colors:
+//   Red=Vcc, Black=Ground, Yellow=I2C Clock (SCL), White=I2C Data (SDA)
 const uint8_t owpins[] = { 5, 6, 9, 10, 11, 12, 13 };
 unsigned long nSensors = 0;  // Number of 1-wire sensors detected in most recent reading
 
@@ -308,14 +320,46 @@ uint8_t readTemperatures(uint8_t pin) {
       nDataRecords++;
     }
   }
+
   Serial.print(numberOfDevices);
   Serial.println(" sensors read");
   return numberOfDevices;
 }
 
+uint8_t readI2C(uint8_t i2caddr) {
+  String timeStamp;
+
+  // Do nothing if there is no humidity sensor attached
+  if (!sht31_detected) {
+    return 0;
+  }
+    
+  timeStamp = timeStampOneWire();
+  sprintf(addr, "%02X", i2caddr);
+  Serial.print("I2C ");
+  Serial.print(addr);
+  Serial.print(" requesting humidity ");
+  Serial.print(timeStamp);
+  Serial.print(" : ");
+
+  // Humidity sensor, treat like a 1-wire sensor. Make a unique ID from mac address plus I2C address in decimal
+  // values are already formatted with 2 decimal places with trailing zero present
+  float t = sht31.readTemperature();
+  float h = sht31.readHumidity();
+  if (dataRecords.length() < maxData) {
+    dataRecords += WiFi.macAddress() + "\t" + timeStamp + "\t" + WiFi.macAddress()+":"+addr + "\t" + t + "\t" + "T" + "\n";
+    nDataRecords++;
+    dataRecords += WiFi.macAddress() + "\t" + timeStamp + "\t" + WiFi.macAddress()+":"+addr + "\t" + h + "\t" + "H" + "\n";
+    nDataRecords++;
+    Serial.println("1 sensor (2 values) read");
+    nSensors+=2;  // update global sensor count
+  }
+  return 2;
+}
+
 void setup() {
   // Set up the serial connection
-  unsigned long timeout = 100;  // 100 * 20 = 2 seconds until timeout
+  unsigned long timeout = 100;  // 100 * 20 = 2 seconds until serial timeout
   Serial.begin(SERIALBPS);
   while ( (! Serial) && (timeout > 0) ) {
     {
@@ -350,6 +394,18 @@ void setup() {
 //  for (uint8_t i=0; i<sizeof(owpins); i++) {
 //    listOneWireDevices(owpins[i]);
 //  }
+
+  // Set up the SHT-30 humidity sensor
+  if (sht31.begin(I2Caddr)) {
+    sht31_detected = true;
+    sht31.heater(false);
+    Serial.print("Detected a SHT-30 at I2C port 0x");
+  }
+  else {
+    Serial.print("Did not detect a SHT-30 at I2C port 0x");
+  }
+  sprintf(addr, "%02X", I2Caddr);
+  Serial.println(addr);
   
   Serial.println("Initialization complete");
 }
@@ -432,6 +488,7 @@ void loop() {
     for (uint8_t i=0; i<sizeof(owpins); i++) {
       readTemperatures(owpins[i]);
     }
+    readI2C(I2Caddr);
     if (WiFi.status() == WL_CONNECTED) {
       startupMessage(10, 70, "Uploading Data", 0, 0, NULL);
       uploadNetcat();
