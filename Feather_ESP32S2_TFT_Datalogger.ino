@@ -1,4 +1,3 @@
-// SPDX-FileCopyrightText: 2022 Douglas Senalik
 //
 // SPDX-License-Identifier: MIT
 //
@@ -30,14 +29,14 @@ Tools -> Port -> /dev/tty/ACM0 (Adafruit Feather ESP32-S3 TFT)
 Tools -> Programmer -> Esptool
 */
 
-// LED color key: Yellow=initialization, Blue=connecting to WiFi 
+// LED color key: Yellow=initialization, Blue=connecting to WiFi
 //                Green=data acquistion; Red=idle
 
 #include <Arduino.h>
 #include "Adafruit_LC709203F.h"
 #include <Adafruit_NeoPixel.h>
 #include "Adafruit_TestBed.h"
-#include <Adafruit_ST7789.h> 
+#include <Adafruit_ST7789.h>
 #include <Fonts/FreeSans12pt7b.h>
 #include <time.h>
 #include <WiFi.h>
@@ -195,7 +194,7 @@ int checkElapsedTime() {
   // returns number of seconds until next reading (might be negative)
   unsigned long now;
   long secUntilRead;
-  
+
   now = getTime();
   // skip data acquisition if we don't know the current time
   if (now > 0) {
@@ -216,7 +215,7 @@ int checkElapsedTime() {
 // Function to upload a string using netcat
 // Function to display message during initialization
 void startupMessage(int16_t x, int16_t y, char *message, int16_t x2, int16_t y2, char *message2) {
-  canvas.setTextColor(ST77XX_BLUE); 
+  canvas.setTextColor(ST77XX_BLUE);
   canvas.fillScreen(ST77XX_YELLOW);
   canvas.setCursor(x, y);
   canvas.println(message);
@@ -286,7 +285,7 @@ uint8_t readTemperatures(uint8_t pin) {
   String sensorType;
   String timeStamp;
   char message2[32] = {};
-    
+
   timeStamp = timeStampOneWire();
   Serial.print("Pin ");
   Serial.print(pin);
@@ -295,9 +294,9 @@ uint8_t readTemperatures(uint8_t pin) {
   Serial.print(" : ");
   sensors.begin();
   sensors.requestTemperatures();
-  
+
   numberOfDevices = sensors.getDeviceCount();
-  
+
   for (i=0; i<numberOfDevices; i++) {
     snprintf(message2, sizeof(message2), "Pin %d Sensor %d", pin, i);
     startupMessage(10, 50, "Reading Sensors", 10, 80, message2);
@@ -333,7 +332,7 @@ uint8_t readI2C(uint8_t i2caddr) {
   if (!sht31_detected) {
     return 0;
   }
-    
+
   timeStamp = timeStampOneWire();
   sprintf(addr, "%02X", i2caddr);
   Serial.print("I2C ");
@@ -342,7 +341,7 @@ uint8_t readI2C(uint8_t i2caddr) {
   Serial.print(timeStamp);
   Serial.print(" : ");
 
-  // Humidity sensor, treat like a 1-wire sensor. Make a unique ID from mac address plus I2C address in decimal
+  // Humidity sensor, treat like a 1-wire sensor. Make a unique ID from mac address plus I2C address
   // values are already formatted with 2 decimal places with trailing zero present
   float t = sht31.readTemperature();
   float h = sht31.readHumidity();
@@ -368,7 +367,7 @@ void setup() {
     }
   }
   Serial.println("Initializing");
-  
+
   // Turn on the TFT / I2C power supply
   pinMode(TFT_I2C_POWER, OUTPUT);
   digitalWrite(TFT_I2C_POWER, HIGH);
@@ -379,7 +378,7 @@ void setup() {
   digitalWrite(NEOPIXEL_POWER, HIGH);
   delay(10);
   TB.neopixelPin = PIN_NEOPIXEL;
-  TB.neopixelNum = 1; 
+  TB.neopixelNum = 1;
   TB.begin();
   // Set LED color to yellow during initialization
   TB.setColor(YELLOW);
@@ -406,7 +405,7 @@ void setup() {
   }
   sprintf(addr, "%02X", I2Caddr);
   Serial.println(addr);
-  
+
   Serial.println("Initialization complete");
 }
 
@@ -473,10 +472,10 @@ void loop() {
       Serial.println("Connected");
     }
   }
-  
+
   // "Green" section is acquiring data and displaying it
   TB.setColor(GREEN);
-  
+
   // to add https://randomnerdtutorials.com/esp32-useful-wi-fi-functions-arduino/#11
   if (WiFi.status() == WL_CONNECTED) {
     updateTime();
@@ -518,7 +517,7 @@ void loop() {
       canvas.setTextColor(ST77XX_RED);
       canvas.println("None");
     }
-      
+
     canvas.setTextColor(ST77XX_GREEN);
     canvas.print("IP: ");
     canvas.setTextColor(ST77XX_WHITE);
@@ -565,7 +564,7 @@ void loop() {
   digitalWrite(TFT_BACKLITE, HIGH);
   // "RED" section is idle loop
   TB.setColor(RED);
-  
+
 //  }
 //  else {
 //    char status[30];
