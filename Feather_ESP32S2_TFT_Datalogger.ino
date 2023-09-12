@@ -19,7 +19,7 @@
  */
 
 /*
-Tools -> Board -> ESP32 Arduino -> Adafruit ESP32-S3 TFT
+Tools -> Board -> ESP32 Arduino -> Adafruit Feather ESP32-S3 TFT
 Tools -> Upload Speed -> 921600
 Tools -> CPU Frequency -> 240 MHz (WiFi)
 Tools -> Flash Mode -> QIO 80 MHz
@@ -133,35 +133,16 @@ unsigned long getTime() {
 // Function to update internal clock from NTP server.
 // Only updates if predefined time (recheckInterval) has passed since last update.
 void updateTime() {
+  unsigned long prevnow;
   unsigned long now;
   int i;
-  char *msg = "Contacting NTP @";  // @ character at [15] will be substituted
+  char *msg = "Contacting NTP Servers";
   now = getTime();
   if ( (lastNTP < 1) or ( (now - lastNTP) >= recheckInterval) ) {
-    for (i=1; i<= COUNT_NTP_SERVERS ; i++) {
-      if (now <= 1) {
-        msg[15] = i+48;  // int to ASCII
-        startupMessage(25, 70, msg, 0, 0, NULL);
-        Serial.println(msg);
-        switch (i) {
-          case 2:
-            configTime(gmtOffset_sec, daylightOffset_sec, ntpServer2);
-            break;
-          case 3:
-            configTime(gmtOffset_sec, daylightOffset_sec, ntpServer3);
-            break;
-          case 4:
-            configTime(gmtOffset_sec, daylightOffset_sec, ntpServer4);
-            break;
-          default:
-            configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1);
-            break;
-        }
-      }
-      sleep(1);
-      now = getTime();
-    }
-    if (now > 1) {
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer2, ntpServer3, ntpServer1);
+    sleep(1);
+    now = getTime();
+    if (now > 120) {
       if (boottime == 0) {
         boottime = now;
       }
@@ -387,7 +368,7 @@ void setup() {
   display.init(135, 240);           // Init ST7789 240x135
   display.setRotation(3);
   canvas.setFont(&FreeSans12pt7b);
-  startupMessage(70, 70, "Initializing", 0, 0, NULL);
+  startupMessage(70, 50, "Initializing", 10, 130, __DATE__);
 
 //  // For development, remove later
 //  for (uint8_t i=0; i<sizeof(owpins); i++) {
@@ -421,7 +402,7 @@ void loop() {
   // "Blue" section is connecting to WiFi and getting time from NTP server
   if ( (WiFi.status() != WL_CONNECTED) && (j % 60 == 0) ) {
     TB.setColor(BLUE);
-    startupMessage(5, 70, WIFI_SSID1, 0, 0, NULL);
+    startupMessage(5, 50, WIFI_SSID1, 10, 130, __DATE__);
     WiFi.disconnect(true);
     WiFi.begin(WIFI_SSID1);
     //0 WL_IDLE_STATUS      temporary status assigned when WiFi.begin() is called
@@ -453,7 +434,7 @@ void loop() {
 
   // Try second SSID if not connected
   if ( (WiFi.status() != WL_CONNECTED) && (j % 60 == 0) ) {
-    startupMessage(5, 70, WIFI_SSID2, 0, 0, NULL);
+    startupMessage(5, 50, WIFI_SSID2, 10, 130, __DATE__);
     WiFi.disconnect(true);
     WiFi.begin(WIFI_SSID2, WIFI_PASSWORD2);
     Serial.print("Connecting to ");
@@ -502,7 +483,7 @@ void loop() {
   canvas.println("VCRU DataLogger");
   canvas.setTextColor(ST77XX_WHITE);
   canvas.println(getLocalTime());
-  // Here we divide up the loop into "screens" based on counter j which will wreap
+  // Here we divide up the loop into "screens" based on counter j which will wrap
   screen = (j / 4 ) % 3;  // so 0, 1, or 2
   switch (screen) {
     case 0:
