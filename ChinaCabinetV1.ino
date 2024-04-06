@@ -31,12 +31,15 @@ Sketch -> Upload Using Programmer
 // Neopixel parameters
 #define PIN_W      4
 #define PIN_E      8
+#define SW_1       5  // Input from toggle switch, INPUT_PULLUP
+#define OUT_1      6  // Set to output, always low, to use as reference for SW_1
 #define NUM_SHELVES_W 5
 #define NUM_SHELVES_E 4
 #define STRIPLEN_W 20
 #define STRIPLEN_E 10
 #define NUM_LEDS_W NUM_SHELVES_W*STRIPLEN_W  // 5 shelves 20 LEDs each = 100
 #define NUM_LEDS_E NUM_SHELVES_E*STRIPLEN_E  // 4 shelves 10 LEDs each = 40
+int switchstate_1 = 1;  // We pull low to enable
 int tdelay = 400;  // milliseconds between neopixel updates
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = pin number (most are valid)
@@ -140,19 +143,31 @@ void rainbowCycle(int SpeedDelay) {
         }
       }
     }
-    showStrip();
+    switchstate_1 = digitalRead(SW_1);
+    if (switchstate_1 == 0) {
+      showStrip();
+    }
+    else {
+      lightsOff();
+    }
     delay(SpeedDelay);
   }
 }
 
 void setAll(byte red, byte green, byte blue) {
-  for(int i = 0; i < NUM_LEDS_W; i++ ) {
+  for (int i = 0; i < NUM_LEDS_W; i++) {
     strip_w.setPixelColor(i, strip_w.Color(red, green, blue));
   }
   showStrip();
 }
 
 void setup() {
+  // Setup for the toggle switch
+  pinMode(SW_1, INPUT_PULLUP);
+  pinMode(OUT_1, OUTPUT);
+  digitalWrite(OUT_1, LOW);
+
+  // Setup for the neopixels
   strip_w.begin();
   strip_e.begin();
   lightsOff();
