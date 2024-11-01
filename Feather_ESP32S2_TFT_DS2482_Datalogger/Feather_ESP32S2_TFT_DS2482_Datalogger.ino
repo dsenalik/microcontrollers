@@ -19,6 +19,7 @@
  */
 
 /*
+Does NOT work with Boards Manager -> esp32 version 3.1.0-RC2, use 3.1.0-RC1
 Tools -> Board -> ESP32 Arduino -> Adafruit Feather ESP32-S3 TFT
 Tools -> Upload Speed -> 921600
 Tools -> CPU Frequency -> 240 MHz (WiFi)
@@ -151,10 +152,10 @@ void updateTime() {
         boottime = now;
       }
       lastNTP = now;
-      Serial.println("Succeeded");
+      Serial.println("configTime Succeeded");
     }
     else {
-      Serial.println("ERROR Failed updating clock with NTP");
+      Serial.println("ERROR configTime Failed updating clock with NTP");
     }
   }
 }
